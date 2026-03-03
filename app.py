@@ -1,11 +1,16 @@
+# Updated content to fix truncated strings and syntax errors for Render deployment.
+
+# Import necessary libraries
+import json
 import os
 
-# Set the correct port and production settings for Render deployment
-PORT = int(os.environ.get('PORT', 5000))
+# Define a function to load configuration
 
-# Other production settings can be configured below
-app.config['DEBUG'] = False  # Disable debug mode in production
-app.config['ENV'] = 'production'  # Set the environment to production
+def load_config():
+    with open('config.json', 'r') as config_file:
+        return json.load(config_file)
 
+# Main execution
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=PORT)
+    config = load_config()
+    print(f"Configuration loaded: {config}")

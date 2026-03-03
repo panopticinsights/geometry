@@ -1,189 +1,146 @@
-# ============================================
-# БЛОК 1: ИМПОРТЫ
-# ============================================
 import dash
-from dash import html, dcc, Input, Output, callback, ctx, ALL
+from dash import html, dcc, Input, Output, ALL, callback_context
 import dash_mantine_components as dmc
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 import numpy as np
-from plotly.subplots import make_subplots  # Явный импорт (был пропущен)
 
 # ============================================
-# БЛОК 2: ИНИЦИАЛИЗАЦИЯ ПРИЛОЖЕНИЯ
+# БЛОК 1: ИНИЦИАЛИЗАЦИЯ (Критично для Render)
 # ============================================
-# Инициализация с MathJax 2.7.7 (исправлено для лучшей совместимости)
-app = dash.Dash(__name__, external_scripts=[
-    'https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML'
-])
+app = dash.Dash(
+    __name__, 
+    external_scripts=[
+        'https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML'
+    ],
+    meta_tags=[{"name": "viewport", "content": "width=device-width, initial-scale=1"}]
+)
+
+# Переменная для Gunicorn (Укажите в Render Start Command: gunicorn app:server)
+server = app.server 
+app.title = "Геометрия 7-9: Справочник"
 
 # ============================================
-# БЛОК 3: БАЗА ДАННЫХ (ТЕКСТОВЫЕ ОПИСАНИЯ)
+# БЛОК 2: ДАННЫЕ
 # ============================================
 materials_db = {
-    "Точки, прямые, отрезки": "Точка — базовая фигура. Прямая бесконечна. Отрезок — часть прямой, ограниченная двумя точками, имеет длину.",
-    # ... (контент без изменений)
-    "Вписанная и описанная окружности": "Окружность внутри (касается сторон) или снаружи (проходит через вершины)."
+    "Точки, прямые, отрезки": "Точка — простейшая геометрическая фигура. Прямая не имеет начала и конца. Отрезок — это часть прямой, ограниченная двумя точками.",
+    "Луч и угол": "Луч — часть прямой, имеющая начало, но не имеющая конца. Угол — фигура, образованная двумя лучами с общим началом.",
+    "Смежные и вертикальные углы": "Сумма смежных углов равна 180°. Вертикальные углы равны между собой.",
+    "Равнобедренный треугольник": "Треугольник называется равнобедренным, если две его стороны равны. Углы при основании равны.",
+    "Площадь квадрата и прямоугольника": "Площадь прямоугольника: $S = a \cdot b$. Площадь квадрата: $S = a^2$.",
+    "Вписанная и описанная окружности": "Окружность называется вписанной, если она касается всех сторон многоугольника. Описанной — если проходит через все вершины."
 }
 
-# ============================================
-# БЛОК 4: СТРУКТУРА ДЕРЕВА ЗНАНИЙ
-# ============================================
 knowledge_tree = {
-    "Начальные сведения": ["Точки, прямые, отрезки", "Луч и угол", "Сравнение и измерение отрезков", "Измерение углов", "Смежные и вертикальные углы", "Перпендикулярные прямые"],
-    # ... (контент без изменений)
-    "Окружность (доп)": ["Касательная к окружности", "Центральные и вписанные углы", "Вписанная и описанная окружности"]
+    "Начальные сведения": ["Точки, прямые, отрезки", "Луч и угол", "Смежные и вертикальные углы"],
+    "Треугольники": ["Равнобедренный треугольник"],
+    "Площади фигур": ["Площадь квадрата и прямоугольника"],
+    "Окружность": ["Вписанная и описанная окружности"]
 }
 
 # ============================================
-# БЛОК 5: ФУНКЦИЯ ГЕНЕРАЦИИ ГРАФИКОВ (get_plot)
+# БЛОК 3: ГЕНЕРАЦИЯ ГРАФИКОВ
 # ============================================
 def get_plot(topic):
-    """
-    Генерирует Plotly фигуру для выбранной темы.
-    Возвращает компонент dcc.Graph.
-    """
     fig = go.Figure()
-
-    # Стандартная конфигурация для всех графиков
-    fig.update_xaxes(visible=False, range=[-1, 5])
-    fig.update_yaxes(visible=False, range=[-1, 5])
-    fig.update_layout(
-        margin=dict(l=20, r=20, t=20, b=20),
+    
+    # Стандартные настройки макета
+    layout_cfg = dict(
+        margin=dict(l=20, r=20, t=30, b=20),
         height=350,
         showlegend=False,
         template="simple_white",
-        # Единый размер шрифта для аннотаций (исправление)
         font=dict(size=12)
     )
 
-    # --- БЛОК 5.1: ОБРАБОТКА КОНКРЕТНЫХ ТЕМ ---
-    if topic == "Точки, прямые, отрезки":
-        # ... (код без изменений)
-        pass
+    if topic == "Площадь квадрата и прямоугольника":
+        fig = make_subplots(rows=1, cols=2, subplot_titles=("Прямоугольник", "Квадрат"))
+        # Прямоугольник
+        fig.add_trace(go.Scatter(x=[0, 3, 3, 0, 0], y=[0, 0, 2, 2, 0], fill="toself", fillcolor="rgba(0, 0, 255, 0.1)", line=dict(color='blue', width=3)), row=1, col=1)
+        fig.add_annotation(x=1.5, y=1, text="S = a·b", showarrow=False, row=1, col=1, font=dict(size=16))
+        # Квадрат
+        fig.add_trace(go.Scatter(x=[0, 2, 2, 0, 0], y=[0, 0, 2, 2, 0], fill="toself", fillcolor="rgba(255, 0, 0, 0.1)", line=dict(color='crimson', width=3)), row=1, col=2)
+        fig.add_annotation(x=1, y=1, text="S = a²", showarrow=False, row=1, col=2, font=dict(size=16))
+        fig.update_xaxes(visible=False, range=[-0.5, 3.5])
+        fig.update_yaxes(visible=False, range=[-0.5, 2.5])
         
-    elif topic == "Сравнение и измерение отрезков":
-        # ... (код без изменений)
-        pass
-        
-    elif topic == "Измерение углов":
-        # ... (код без изменений)
-        pass
-        
-    elif topic == "Равнобедренный треугольник":
-        # ... (код без изменений)
-        pass
-        
-    # Пример блока с исправлением размера кегля (шрифта)
-    elif topic == "Площадь квадрата и прямоугольника":
-        from plotly.subplots import make_subplots
-        fig = make_subplots(rows=1, cols=2,
-                            subplot_titles=("Прямоугольник (S = a · b)", "Квадрат (S = a²)"),
-                            horizontal_spacing=0.2)
+    elif topic == "Смежные и вертикальные углы":
+        # Смежные углы
+        fig.add_trace(go.Scatter(x=[-2, 2], y=[0, 0], mode='lines', line=dict(color='black', width=2)))
+        fig.add_trace(go.Scatter(x=[0, 1], y=[0, 1.5], mode='lines', line=dict(color='red', width=3)))
+        fig.add_annotation(x=-0.5, y=0.3, text="180° - α", showarrow=False)
+        fig.add_annotation(x=0.5, y=0.3, text="α", showarrow=False)
+        fig.update_xaxes(visible=False, range=[-2.5, 2.5])
+        fig.update_yaxes(visible=False, range=[-0.5, 2])
 
-        # --- 1. ПРЯМОУГОЛЬНИК (3x2) ---
-        for i in range(4):
-            fig.add_trace(go.Scatter(x=[i, i], y=[0, 2], mode='lines', line=dict(color='lightgray', width=1), showlegend=False), row=1, col=1)
-        for j in range(3):
-            fig.add_trace(go.Scatter(x=[0, 3], y=[j, j], mode='lines', line=dict(color='lightgray', width=1), showlegend=False), row=1, col=1)
-
-        fig.add_trace(go.Scatter(x=[0, 3, 3, 0, 0], y=[0, 0, 2, 2, 0],
-                                 fill="toself", fillcolor="rgba(0, 0, 255, 0.1)",
-                                 mode='lines', line=dict(color='blue', width=3)), row=1, col=1)
-
-        # ИСПРАВЛЕНО: textangle вынесен из font, добавлен единый размер шрифта
-        fig.add_annotation(x=1.5, y=-0.3, text="a = 3", showarrow=False, row=1, col=1, font=dict(size=14)) # Увеличен размер для наглядности
-        fig.add_annotation(x=-0.4, y=1, text="b = 2", showarrow=False, row=1, col=1, textangle=-90, font=dict(size=14))
-        fig.add_annotation(x=1.5, y=1, text="S = 3 · 2 = 6", showarrow=False, row=1, col=1, font=dict(size=16, weight="bold"))
-
-        # --- 2. КВАДРАТ (2x2) ---
-        for i in range(3):
-            fig.add_trace(go.Scatter(x=[i, i], y=[0, 2], mode='lines', line=dict(color='lightgray', width=1), showlegend=False), row=1, col=2)
-        for j in range(3):
-            fig.add_trace(go.Scatter(x=[0, 2], y=[j, j], mode='lines', line=dict(color='lightgray', width=1), showlegend=False), row=1, col=2)
-
-        fig.add_trace(go.Scatter(x=[0, 2, 2, 0, 0], y=[0, 0, 2, 2, 0],
-                                 fill="toself", fillcolor="rgba(255, 0, 0, 0.1)",
-                                 mode='lines', line=dict(color='crimson', width=3)), row=1, col=2)
-
-        fig.add_annotation(x=1, y=-0.3, text="a = 2", showarrow=False, row=1, col=2, font=dict(size=14))
-        fig.add_annotation(x=1, y=1, text="S = 2² = 4", showarrow=False, row=1, col=2, font=dict(size=16, weight="bold"))
-
-        # Настройка осей и единого размера шрифта для подзаголовков
-        fig.update_xaxes(range=[-1, 4], showticklabels=False, showgrid=False, zeroline=False)
-        fig.update_yaxes(range=[-1, 3], showticklabels=False, showgrid=False, zeroline=False)
-        fig.update_layout(height=400, showlegend=False, font=dict(size=12)) # Единый базовый шрифт
-
-    # ... (остальные блоки elif для других тем без изменений)
-    elif topic == "Окружность":
-        # ... (код без изменений)
-        pass
-        
     else:
-        # Заглушка для тем без специфической графики
-        fig.add_annotation(x=2, y=2, text="Визуализация в процессе разработки", showarrow=False, font=dict(size=14, color="gray"))
+        fig.add_annotation(x=0.5, y=0.5, text="Интерактивная модель в разработке", showarrow=False, font=dict(size=14, color="gray"))
+        fig.update_xaxes(visible=False)
+        fig.update_yaxes(visible=False)
 
-    # Возвращаем компонент графика
-    return dcc.Graph(figure=fig, config={'displayModeBar': False})
+    fig.update_layout(**layout_cfg)
+    return dcc.Graph(figure=fig, config={'displayModeBar': False}, responsive=True)
 
 # ============================================
-# БЛОК 6: ФУНКЦИЯ СОЗДАНИЯ ДЕРЕВА НАВИГАЦИИ
+# БЛОК 4: ИНТЕРФЕЙС (LAYOUT)
 # ============================================
 def create_tree():
-    """Создает аккордеон с навигацией по темам."""
     return [
-        dmc.AccordionItem([
-            dmc.AccordionControl(section),
-            dmc.AccordionPanel(
-                dmc.Stack([
-                    dmc.NavLink(
-                        label=topic,
-                        id={"type": "topic-link", "index": topic},
-                        variant="subtle",
-                        color="indigo"
-                    ) for topic in topics
-                ], gap="xs")
-            ),
-        ], value=section) for section, topics in knowledge_tree.items()
+        dmc.AccordionItem(
+            value=section,
+            children=[
+                dmc.AccordionControl(section),
+                dmc.AccordionPanel(
+                    dmc.Stack([
+                        dmc.NavLink(
+                            label=topic,
+                            id={"type": "topic-link", "index": topic},
+                            variant="subtle",
+                            color="indigo"
+                        ) for topic in topics
+                    ], gap="xs")
+                ),
+            ]
+        ) for section, topics in knowledge_tree.items()
     ]
 
-# ============================================
-# БЛОК 7: LAYOUT (ВЕРСТКА ПРИЛОЖЕНИЯ)
-# ============================================
 app.layout = dmc.MantineProvider(
-    theme={  # Добавлена глобальная тема для единообразия шрифтов
-        "fontFamily": "'Arial', sans-serif",
-        "headings": {"fontFamily": "'Arial', sans-serif"},
-    },
+    theme={"fontFamily": "'Inter', sans-serif"},
     children=dmc.Container([
         dmc.Grid([
-            # Левая колонка (навигация)
+            # Левая колонка: Меню
             dmc.GridCol([
                 dmc.Paper([
-                    dmc.Title("Геометрия 7-9", order=2, mb="md", ta="center"),
+                    dmc.Title("Геометрия 7-9", order=2, mb="md", ta="center", c="indigo"),
                     dmc.Accordion(variant="contained", children=create_tree()),
                 ], p="md", withBorder=True, radius="md", shadow="sm")
-            ], span=5),
+            ], span=12, md=4),
 
-            # Правая колонка (контент)
+            # Правая колонка: Контент
             dmc.GridCol([
                 dmc.Paper([
-                    dmc.Title("Справочник и Визуализация", order=3, mb="sm", c="indigo"),
-                    dmc.Divider(mb="md"),
                     dmc.ScrollArea(
                         id="material-content",
-                        children=dmc.Text("Выберите тему из списка слева.", c="dimmed", fs="italic"),
+                        children=dmc.Center(
+                            dmc.Stack([
+                                dmc.Text("Выберите тему из списка слева для изучения", c="dimmed", italic=True),
+                            ], align="center"),
+                            h=600
+                        ),
                         h=750,
                         offsetScrollbars=True
                     ),
+                    # Скрытый div для MathJax
                     html.Div(id="mathjax-trigger", style={"display": "none"})
-                ], withBorder=True, p="xl", radius="md", shadow="md", style={"backgroundColor": "#fafafa"})
-            ], span=7)
+                ], withBorder=True, p="xl", radius="md", shadow="md", style={"backgroundColor": "#ffffff"})
+            ], span=12, md=8)
         ], gutter="xl")
     ], size="lg", mt="xl")
 )
 
 # ============================================
-# БЛОК 8: CALLBACK (ОБРАБОТКА КЛИКОВ)
+# БЛОК 5: ЛОГИКА (CALLBACK)
 # ============================================
 @app.callback(
     Output("material-content", "children"),
@@ -191,32 +148,30 @@ app.layout = dmc.MantineProvider(
     prevent_initial_call=True
 )
 def display_material(n_clicks):
-    """
-    Обновляет контент в правой панели при клике на тему.
-    """
-    # ИСПРАВЛЕНИЕ ОШИБКИ №1: ctx.triggered_id не существует, используем dash.callback_context
-    triggered = dash.callback_context.triggered_id
+    # Определяем, на какую ссылку нажали
+    triggered = callback_context.triggered_id
     if not triggered or not any(n_clicks):
         return dash.no_update
 
-    # Получаем название темы из id компонента
     topic_name = triggered['index']
-    content = materials_db.get(topic_name, "Материал скоро появится.")
+    content = materials_db.get(topic_name, "Материал скоро будет добавлен.")
 
-    # Возвращаем структуру с контентом
     return html.Div([
-        dmc.Title(topic_name, order=4, mb="xs", c="indigo"),
-        dmc.Text(content, size="lg", mb="xl", style={"lineHeight": "1.6"}),
-        dmc.Divider(label="Интерактивная модель", labelPosition="center", mb="md"),
-        get_plot(topic_name),
-        # Скрипт для обновления MathJax
+        dmc.Title(topic_name, order=3, mb="sm", c="indigo"),
+        dmc.Divider(mb="lg"),
+        dmc.Text(content, size="lg", mb="xl", style={"lineHeight": "1.7"}),
+        
+        dmc.Paper([
+            dmc.Text("Визуализация", size="sm", fw=700, c="dimmed", mb="xs", ta="center"),
+            get_plot(topic_name)
+        ], withBorder=True, p="sm", radius="md", bg="#f9f9f9"),
+        
+        # Скрипт принудительного ререндеринга формул MathJax
         html.Script("if(window.MathJax){MathJax.Hub.Queue(['Typeset', MathJax.Hub]);}")
     ])
 
 # ============================================
-# БЛОК 9: ЗАПУСК ПРИЛОЖЕНИЯ
+# ЗАПУСК
 # ============================================
 if __name__ == "__main__":
-    # ИСПРАВЛЕНИЕ УЯЗВИМОСТИ: debug=True только для разработки
-    # В продакшене должно быть debug=False
-    app.run(debug=False) # Изменено с True на False для безопасности
+    app.run_server(host='0.0.0.0', port=8050, debug=False)

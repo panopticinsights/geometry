@@ -1574,5 +1574,8 @@ def display_material(n_clicks):
         html.Script("if(window.MathJax){MathJax.Hub.Queue(['Typeset', MathJax.Hub]);}")
     ])
 
+# Для Render нужно указать server
+server = app.server
+
 if __name__ == "__main__":
     app.run(debug=True)
